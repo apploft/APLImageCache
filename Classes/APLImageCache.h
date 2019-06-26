@@ -87,6 +87,12 @@ typedef void(^APLImageCacheCompletion)(UIImage * _Nullable image);
  *  @return YES if the image exits in the image cache
  */
 + (BOOL)imageExistsForURL:(nonnull NSURL *)remoteURL type:(nonnull NSString *)type;
+
+/**
+ * The content mode to be used for drawing images. Defaults to ScaleToFill.
+ */
++ (void)setCacheContentMode:(UIViewContentMode)contentMode;
+
 @end
 
 /**

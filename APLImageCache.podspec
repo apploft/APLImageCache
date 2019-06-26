@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "APLImageCache"
-  s.version      = "0.0.5"
+  s.version      = "1.0.0"
   s.summary      = "A simple wrapper for the FastImageCache."
 
   s.description  = <<-DESC

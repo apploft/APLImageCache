@@ -19,18 +19,21 @@ NSString * const APLImageMaximumCount = @"APLImageTypeMaximumCount";
 NSString * const APLImageStyle = @"APLImageTypeStyle";
 
 static NSUInteger const kAPLDefaultMaxImageCount = 500;
+static UIViewContentMode APLImageCacheContentMode;
 
 
 @interface APLImageCacheEntity : NSObject <FICEntity>
-@property (nonatomic, strong) NSString *identifier;
-@property (nonatomic, strong) NSString *type;
-@property (nonatomic, strong) NSURL *remoteURL;
+@property (nonatomic) UIViewContentMode contentMode;
+@property (nonatomic) NSString *identifier;
+@property (nonatomic) NSString *type;
+@property (nonatomic) NSURL *remoteURL;
 @end
 
 @implementation APLImageCacheEntity
 
-+ (instancetype)entityWithIdentifier:(NSString *)identifier url:(NSURL *)url type:(NSString *)type {
++ (instancetype)entityWithIdentifier:(NSString *)identifier url:(NSURL *)url type:(NSString *)type contentMode:(UIViewContentMode)contentMode {
     APLImageCacheEntity *instance = [APLImageCacheEntity new];
+    instance.contentMode = contentMode;
     instance.identifier = identifier;
     instance.type = type;
     instance.remoteURL = url;
@@ -57,12 +60,19 @@ static NSUInteger const kAPLDefaultMaxImageCount = 500;
         CGRect contextBounds = CGRectZero;
         contextBounds.size = contextSize;
         CGContextClearRect(context, contextBounds);
-        
+
         CGRect rect = CGRectZero;
-        if (contextSize.width == contextSize.height) {
-            rect = _FICDAspectFillRect(contextSize, image.size);
-        } else {
-            rect = _FICDAspectFitRect(contextSize, image.size);
+        switch (self.contentMode) {
+            case UIViewContentModeScaleAspectFit:
+                rect = _FICDAspectFitRect(contextSize, image.size);
+                break;
+
+            case UIViewContentModeScaleAspectFill:
+                rect = _FICDAspectFillRect(contextSize, image.size);
+                break;
+
+            default:
+                rect = contextBounds;
         }
         
         UIGraphicsPushContext(context);
@@ -123,6 +133,10 @@ static CGRect _FICDAspectFillRect(CGSize contextSize, CGSize actualImageSize) {
     return _sharedInstance;
 }
 
++ (void)setCacheContentMode:(UIViewContentMode)contentMode {
+    APLImageCacheContentMode = contentMode;
+}
+
 + (void)setupWithDownloader:(Class<APLImageDownloaderProtocol>)downloaderClass
                descriptions:(NSArray *)imageDescriptions
 {
@@ -169,7 +183,7 @@ static CGRect _FICDAspectFillRect(CGSize contextSize, CGSize actualImageSize) {
 
 + (void)cachedImageForURL:(NSURL *)remoteURL type:(NSString *)type completionBlock:(void(^)(UIImage*))completionBlock {
     NSString *identifier = [APLImageCache identifierForRemoteURL:remoteURL];
-    APLImageCacheEntity *entity = [APLImageCacheEntity entityWithIdentifier:identifier url:remoteURL type:type];
+    APLImageCacheEntity *entity = [APLImageCacheEntity entityWithIdentifier:identifier url:remoteURL type:type contentMode:APLImageCacheContentMode];
     [[FICImageCache sharedImageCache] asynchronouslyRetrieveImageForEntity:entity withFormatName:[APLImageCache formatNameFromImageTypeName:type]
                                                            completionBlock:^(id<FICEntity> entity, NSString *formatName, UIImage *image) {
        if (completionBlock) {
@@ -180,13 +194,13 @@ static CGRect _FICDAspectFillRect(CGSize contextSize, CGSize actualImageSize) {
 
 + (void)cancelCachedImageRequestForURL:(NSURL *)remoteURL type:(NSString *)type {
     NSString *identifier = [APLImageCache identifierForRemoteURL:remoteURL];
-    APLImageCacheEntity *entity = [APLImageCacheEntity entityWithIdentifier:identifier url:remoteURL type:type];
+    APLImageCacheEntity *entity = [APLImageCacheEntity entityWithIdentifier:identifier url:remoteURL type:type contentMode:APLImageCacheContentMode];
     [[FICImageCache sharedImageCache] cancelImageRetrievalForEntity:entity withFormatName:[APLImageCache formatNameFromImageTypeName:entity.type]];
 }
 
 + (void)setCachedImage:(UIImage *)image remoteURL:(NSURL *)remoteURL type:(NSString *)type {
     NSString *identifier = [APLImageCache identifierForRemoteURL:remoteURL];
-    APLImageCacheEntity *entity = [APLImageCacheEntity entityWithIdentifier:identifier url:remoteURL type:type];
+    APLImageCacheEntity *entity = [APLImageCacheEntity entityWithIdentifier:identifier url:remoteURL type:type contentMode:APLImageCacheContentMode];
     [[FICImageCache sharedImageCache] setImage:image forEntity:entity withFormatName:[APLImageCache formatNameFromImageTypeName:entity.type] completionBlock:nil];
 }
 
